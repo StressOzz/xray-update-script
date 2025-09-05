@@ -106,4 +106,4 @@ docker restart $CONTAINER >/dev/null
 NEW_XRAY=$(docker exec $CONTAINER xray --version 2>/dev/null | head -n1 | awk '{print $2}')
 echo -e "${YELLOW}[*] Новая версия Xray: ${GREEN}${NEW_XRAY}${RESET}"
 
-echo -e "${GREEN}[+] Обновление Docker и Xray завершено! Все контейнеры, включая Xray, остались нетронутыми.${RESET}"
+echo -e "${GREEN}[+] Обновление Docker и Xray завершено!${RESET}"
