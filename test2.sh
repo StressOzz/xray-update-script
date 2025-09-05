@@ -47,7 +47,7 @@ chmod +x /usr/bin/xray
 
 # Перезапускаем контейнер
 echo -e "${YELLOW}[*] Перезапускаем контейнер...${RESET}"
-docker restart $CONTAINER
+docker restart $CONTAINER >/dev/null
 
 # Проверяем версию после обновления
 NEW_VER=$(docker exec $CONTAINER xray --version 2>/dev/null | head -n1 | awk '{print $2}')
