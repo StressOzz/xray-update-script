@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+clear
 
 # Цвета
 YELLOW="\033[1;33m"
