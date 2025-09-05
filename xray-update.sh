@@ -10,8 +10,10 @@ RESET="\033[0m"
 
 CONTAINER="amnezia-xray"
 
-echo -e "${YELLOW}[*] Текущая версия Xray в контейнере:${RESET}"
-docker exec $CONTAINER xray --version || echo -e "${RED}Xray не найден${RESET}"
+# Получаем текущую версию Xray в контейнере
+CURRENT=$(docker exec $CONTAINER xray --version 2>/dev/null | head -n1 | awk '{print $2}')
+
+echo -e "${YELLOW}[*] Текущая версия Xray в контейнере: ${GREEN}${CURRENT}${RESET}"
 
 # Получаем последнюю версию Xray с GitHub
 LATEST=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
@@ -21,17 +23,23 @@ if [ -z "$LATEST" ]; then
     exit 1
 fi
 
-echo -e "${YELLOW}[*] Последняя версия: $LATEST${RESET}"
-URL="https://github.com/XTLS/Xray-core/releases/download/v$LATEST/Xray-linux-64.zip"
+echo -e "${YELLOW}[*] Последняя версия Xray: ${GREEN}${LATEST}${RESET}"
+
+# Проверяем, совпадают ли версии
+if [ "$CURRENT" == "$LATEST" ]; then
+    echo -e "${GREEN}[+] Установлена последняя версия Xray. Обновление не требуется.${RESET}"
+    exit 0
+fi
+
+echo -e "${YELLOW}[*] Версия устарела. Обновляем Xray...${RESET}"
 
 # Удаляем старый архив и распакованную папку внутри контейнера, если есть
 docker exec $CONTAINER sh -c 'rm -f /tmp/Xray-linux-64.zip'
 docker exec $CONTAINER sh -c 'rm -rf /tmp/xray-new'
 
 # Скачиваем и распаковываем внутри контейнера
-echo -e "${YELLOW}[*] Скачиваем и распаковываем Xray $LATEST внутри контейнера...${RESET}"
 docker exec $CONTAINER sh -c "
-wget -q -O /tmp/Xray-linux-64.zip $URL &&
+wget -q -O /tmp/Xray-linux-64.zip https://github.com/XTLS/Xray-core/releases/download/v$LATEST/Xray-linux-64.zip &&
 unzip -oq /tmp/Xray-linux-64.zip -d /tmp/xray-new &&
 cp /tmp/xray-new/xray /usr/bin/xray &&
 chmod +x /usr/bin/xray
@@ -39,10 +47,10 @@ chmod +x /usr/bin/xray
 
 # Перезапускаем контейнер
 echo -e "${YELLOW}[*] Перезапускаем контейнер...${RESET}"
-docker restart $CONTAINER
+docker restart $CONTAINER >/dev/null
 
 # Проверяем версию после обновления
-echo -e "${YELLOW}[*] Новая версия Xray в контейнере:${RESET}"
-docker exec $CONTAINER xray --version
+NEW_VER=$(docker exec $CONTAINER xray --version 2>/dev/null | head -n1 | awk '{print $2}')
+echo -e "${YELLOW}[*] Новая версия Xray в контейнере: ${GREEN}${NEW_VER}${RESET}"
 
 echo -e "${GREEN}[+] Обновление завершено!${RESET}"
