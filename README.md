@@ -20,7 +20,7 @@
 ## ⚡ Установка
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/StressOzz/xray-update-script/main/Xray-Update.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/StressOzz/xray-update-script/main/xray-update.sh)
 ```
 
 ---
