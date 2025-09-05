@@ -12,24 +12,29 @@ CONTAINER="amnezia-xray"
 
 echo -e "${YELLOW}[*] Начинаем проверку Docker...${RESET}"
 
-# Текущая версия Docker
+# Удаляем старые ключи Docker, если есть
+rm -f /etc/apt/trusted.gpg.d/docker.gpg
+rm -f /etc/apt/keyrings/docker.gpg
+
+# Текущая версия Docker (если есть)
 CURRENT_FULL=$(docker --version 2>/dev/null | awk '{print $3}' | sed 's/,//')
-CURRENT=$(echo "$CURRENT_FULL" | sed -E 's/^[0-9]+:([0-9.]+).*/\1/')
-CURRENT=${CURRENT:-"не установлен"}
+CURRENT=$(echo "$CURRENT_FULL" | sed -E 's/^[0-9]+:([0-9.]+).*/\1/' || echo "не установлен")
 echo -e "${YELLOW}[*] Текущая версия Docker: ${GREEN}${CURRENT}${RESET}"
 
-# Удаляем старые версии Docker молча
-apt remove -y docker docker-engine docker.io containerd runc >/dev/null 2>&1 || true
+# Удаляем старые версии Docker (молча)
+apt remove -y -qq docker docker-engine docker.io containerd runc >/dev/null 2>&1 || true
 
 # Устанавливаем зависимости
 apt update -qq
 apt install -y -qq ca-certificates curl gnupg lsb-release >/dev/null 2>&1
 
-# Добавляем официальный ключ Docker без вопросов
+# Добавляем официальный ключ Docker
 echo -e "${YELLOW}[*] Добавляем ключ Docker...${RESET}"
 mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg.tmp
-mv -f /etc/apt/keyrings/docker.gpg.tmp /etc/apt/keyrings/docker.gpg
+if ! curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg; then
+    echo -e "${RED}[!] Ошибка: не удалось добавить ключ Docker${RESET}"
+    exit 1
+fi
 
 # Добавляем репозиторий Docker
 echo -e "${YELLOW}[*] Добавляем репозиторий Docker...${RESET}"
@@ -39,27 +44,34 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
 # Получаем последнюю доступную версию Docker
 apt update -qq
 LATEST_FULL=$(apt-cache policy docker-ce | grep Candidate | awk '{print $2}')
-LATEST=$(echo "$LATEST_FULL" | sed -E 's/^[0-9]+:([0-9.]+).*/\1/')
-LATEST=${LATEST:-"не найдено"}
+LATEST=$(echo "$LATEST_FULL" | sed -E 's/^[0-9]+:([0-9.]+).*/\1/' || echo "не найдено")
 echo -e "${YELLOW}[*] Последняя доступная версия Docker: ${GREEN}${LATEST}${RESET}"
 
-# Проверяем, нужно ли обновлять Docker
+# Если текущая версия совпадает с последней
 if [ "$CURRENT" == "$LATEST" ]; then
     echo -e "${GREEN}[+] Docker актуален (${CURRENT}). Обновление не требуется.${RESET}"
 else
+    # Устанавливаем/обновляем Docker
     echo -e "${YELLOW}[*] Обновляем Docker...${RESET}"
-    apt install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >/dev/null 2>&1
-    echo -e "${YELLOW}[*] Итоговая версия Docker: ${GREEN}$(docker --version | awk '{print $3}' | sed 's/,//')${RESET}"
+    if ! apt install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >/dev/null 2>&1; then
+        echo -e "${RED}[!] Ошибка: не удалось установить Docker${RESET}"
+        exit 1
+    fi
+    NEW_VER=$(docker --version 2>/dev/null | awk '{print $3}' | sed 's/,//' || echo "не установлен")
+    echo -e "${YELLOW}[*] Итоговая версия Docker после обновления: ${GREEN}${NEW_VER}${RESET}"
 fi
+
+# ------------------- Xray -------------------
 
 echo -e "\n${YELLOW}[*] Проверка Xray в контейнере ${CONTAINER}...${RESET}"
 
 # Получаем текущую версию Xray
-CURRENT_X=$(docker exec $CONTAINER xray --version 2>/dev/null | head -n1 | awk '{print $2}')
+CURRENT_X=$(docker exec $CONTAINER xray --version 2>/dev/null | head -n1 | awk '{print $2}' || echo "не установлен")
 echo -e "${YELLOW}[*] Текущая версия Xray: ${GREEN}${CURRENT_X}${RESET}"
 
 # Получаем последнюю версию Xray с GitHub
-LATEST_X=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+LATEST_X=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases/latest \
+    | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
 if [ -z "$LATEST_X" ]; then
     echo -e "${RED}[!] Не удалось получить последнюю версию Xray.${RESET}"
     exit 1
@@ -71,13 +83,13 @@ if [ "$CURRENT_X" == "$LATEST_X" ]; then
     echo -e "${GREEN}[+] Установлена последняя версия Xray (${CURRENT_X}). Обновление не требуется.${RESET}"
 else
     echo -e "${YELLOW}[*] Версия устарела. Обновляем Xray...${RESET}"
+    # Удаляем старые файлы
+    docker exec $CONTAINER sh -c 'rm -f /Xray-linux-64.zip'
+    docker exec $CONTAINER sh -c 'rm -rf /tmp/xray-new'
 
-    # Подчищаем старые файлы
-    docker exec $CONTAINER sh -c 'rm -f /Xray-linux-64.zip; rm -rf /tmp/xray-new'
-
-    # Скачиваем и устанавливаем новую версию
+    # Скачиваем, распаковываем и ставим
     docker exec $CONTAINER sh -c "
-    wget -q -O /Xray-linux-64.zip https://github.com/XTLS/Xray-core/releases/download/v${LATEST_X}/Xray-linux-64.zip &&
+    wget -q -O /Xray-linux-64.zip https://github.com/XTLS/Xray-core/releases/download/v$LATEST_X/Xray-linux-64.zip &&
     unzip -oq /Xray-linux-64.zip -d /tmp/xray-new &&
     cp /tmp/xray-new/xray /usr/bin/xray &&
     chmod +x /usr/bin/xray &&
@@ -85,10 +97,12 @@ else
     rm -rf /tmp/xray-new
     "
 
+    # Перезапускаем контейнер тихо
     echo -e "${YELLOW}[*] Перезапускаем контейнер ${CONTAINER}...${RESET}"
     docker restart $CONTAINER >/dev/null
-    NEW_VER=$(docker exec $CONTAINER xray --version 2>/dev/null | head -n1 | awk '{print $2}')
-    echo -e "${YELLOW}[*] Новая версия Xray: ${GREEN}${NEW_VER}${RESET}"
+
+    NEW_X=$(docker exec $CONTAINER xray --version 2>/dev/null | head -n1 | awk '{print $2}' || echo "не установлен")
+    echo -e "${YELLOW}[*] Новая версия Xray: ${GREEN}${NEW_X}${RESET}"
 fi
 
 echo -e "\n${GREEN}[+] Обновление Docker и Xray завершено!${RESET}"
