@@ -43,11 +43,10 @@ LATEST=$(echo "$LATEST_FULL" | sed -E 's/^[0-9]+:([0-9.]+).*/\1/')
 LATEST=${LATEST:-"не найдено"}
 echo -e "${YELLOW}[*] Последняя доступная версия Docker: ${GREEN}${LATEST}${RESET}"
 
-# Если текущая версия совпадает с последней
+# Проверяем, нужно ли обновлять Docker
 if [ "$CURRENT" == "$LATEST" ]; then
     echo -e "${GREEN}[+] Docker актуален (${CURRENT}). Обновление не требуется.${RESET}"
 else
-    # Устанавливаем/обновляем Docker
     echo -e "${YELLOW}[*] Обновляем Docker...${RESET}"
     apt install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin >/dev/null 2>&1
     echo -e "${YELLOW}[*] Итоговая версия Docker: ${GREEN}$(docker --version | awk '{print $3}' | sed 's/,//')${RESET}"
