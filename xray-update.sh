@@ -33,19 +33,21 @@ fi
 
 echo -e "${YELLOW}[*] Версия устарела. Обновляем Xray...${RESET}"
 
-# Удаляем старый архив и распакованную папку внутри контейнера, если есть
-docker exec $CONTAINER sh -c 'rm -f /tmp/Xray-linux-64.zip'
+# Удаляем старый архив и временную папку внутри контейнера
+docker exec $CONTAINER sh -c 'rm -f /Xray-linux-64.zip'
 docker exec $CONTAINER sh -c 'rm -rf /tmp/xray-new'
 
-# Скачиваем и распаковываем внутри контейнера
+# Скачиваем, распаковываем и устанавливаем внутри контейнера
 docker exec $CONTAINER sh -c "
-wget -q -O /tmp/Xray-linux-64.zip https://github.com/XTLS/Xray-core/releases/download/v$LATEST/Xray-linux-64.zip &&
-unzip -oq /tmp/Xray-linux-64.zip -d /tmp/xray-new &&
+wget -q -O /Xray-linux-64.zip https://github.com/XTLS/Xray-core/releases/download/v$LATEST/Xray-linux-64.zip &&
+unzip -oq /Xray-linux-64.zip -d /tmp/xray-new &&
 cp /tmp/xray-new/xray /usr/bin/xray &&
-chmod +x /usr/bin/xray
+chmod +x /usr/bin/xray &&
+rm -f /Xray-linux-64.zip &&
+rm -rf /tmp/xray-new
 "
 
-# Перезапускаем контейнер
+# Перезапускаем контейнер тихо
 echo -e "${YELLOW}[*] Перезапускаем контейнер...${RESET}"
 docker restart $CONTAINER >/dev/null
 
