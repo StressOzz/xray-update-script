@@ -13,7 +13,7 @@ CONTAINER="amnezia-xray"
 # Получаем текущую версию Xray в контейнере
 CURRENT=$(docker exec $CONTAINER xray --version 2>/dev/null | head -n1 | awk '{print $2}')
 
-echo -e "${YELLOW}[*] Текущая версия Xray в контейнере: ${CURRENT}${RESET}"
+echo -e "${YELLOW}[*] Текущая версия Xray в контейнере: ${GREEN}${CURRENT}${RESET}"
 
 # Получаем последнюю версию Xray с GitHub
 LATEST=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
@@ -23,7 +23,7 @@ if [ -z "$LATEST" ]; then
     exit 1
 fi
 
-echo -e "${YELLOW}[*] Последняя версия Xray: ${LATEST}${RESET}"
+echo -e "${YELLOW}[*] Последняя версия Xray: ${GREEN}${LATEST}${RESET}"
 
 # Проверяем, совпадают ли версии
 if [ "$CURRENT" == "$LATEST" ]; then
@@ -46,10 +46,11 @@ chmod +x /usr/bin/xray
 "
 
 # Перезапускаем контейнер
+echo -e "${YELLOW}[*] Перезапускаем контейнер...${RESET}"
 docker restart $CONTAINER
 
 # Проверяем версию после обновления
-echo -e "${YELLOW}[*] Новая версия Xray в контейнере:${RESET}"
-docker exec $CONTAINER xray --version
+NEW_VER=$(docker exec $CONTAINER xray --version 2>/dev/null | head -n1 | awk '{print $2}')
+echo -e "${YELLOW}[*] Новая версия Xray в контейнере: ${GREEN}${NEW_VER}${RESET}"
 
 echo -e "${GREEN}[+] Обновление завершено!${RESET}"
