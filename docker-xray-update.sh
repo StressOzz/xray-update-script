@@ -9,7 +9,7 @@ RESET="\033[0m"
 
 GRAY='\033[38;5;236m'
 
-VERSION="v1.1"
+VERSION="v1.2"
 
 clear
 
