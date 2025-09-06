@@ -65,7 +65,7 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
     > /etc/apt/sources.list.d/docker.list
 
 # Обновляем индекс и получаем последнюю доступную версию
-apt update -qq
+apt update -qq >/dev/null 2>&1
 LATEST_FULL=$(apt-cache policy docker-ce | grep Candidate | awk '{print $2}' || echo "")
 LATEST=$(echo "$LATEST_FULL" | sed -E 's/^[0-9]+:([0-9.]+).*/\1/' || echo "не найдено")
 echo -e "${YELLOW}[*] Последняя доступная версия Docker: ${GREEN}${LATEST}${RESET}"
