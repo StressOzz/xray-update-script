@@ -37,10 +37,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/StressOzz/xray-update-script/m
 
 ---
 
-## ⚡ Автообновление
+## ⚡ Обновление или удаление Docker через меню
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/StressOzz/xray-update-script/main/docker-xray-update.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/StressOzz/xray-update-script/main/Docker-Menu.sh)
 ```
 ---
 
