@@ -28,23 +28,23 @@ while true; do
 
             # Docker
             if command -v docker >/dev/null 2>&1; then
-                echo -e "${GREEN}Docker: $(docker --version)${NC}"
+                echo -e "${GREEN}Docker:           $(docker --version)${NC}"
             else
-                echo -e "${RED}Docker: не установлен${NC}"
+                echo -e "${RED}Docker:           не установлен${NC}"
             fi
 
             # Compose plugin
             if docker compose version >/dev/null 2>&1; then
-                echo -e "${GREEN}Docker Compose: $(docker compose version)${NC}"
+                echo -e "${GREEN}Docker Compose:   $(docker compose version)${NC}"
             else
-                echo -e "${RED}Docker Compose: не найден${NC}"
+                echo -e "${RED}Docker Compose:   не найден${NC}"
             fi
 
             # containerd
             if command -v containerd >/dev/null 2>&1; then
-                echo -e "${GREEN}containerd: $(containerd --version)${NC}"
+                echo -e "${GREEN}containerd:       $(containerd --version)${NC}"
             else
-                echo -e "${RED}containerd: не установлен${NC}"
+                echo -e "${RED}containerd:       не установлен${NC}"
             fi
 
             echo ""
@@ -112,16 +112,16 @@ while true; do
         3)
             echo -e "${CYAN}=== Состояние Docker ===${NC}"
             echo -e "${BLUE}--- Контейнеры ---${NC}"
-            docker ps -a || echo "Нет контейнеров"
+            docker ps -a || echo -e "${RED}Нет контейнеров${NC}"
 
             echo -e "${BLUE}--- Образы ---${NC}"
-            docker images || echo "Нет образов"
+            docker images || echo -e "${RED}Нет образов${NC}"
 
             echo -e "${BLUE}--- Тома ---${NC}"
-            docker volume ls || echo "Нет томов"
+            docker volume ls || echo -e "${RED}Нет томов${NC}"
 
             echo -e "${BLUE}--- Сети ---${NC}"
-            docker network ls || echo "Нет сетей"
+            docker network ls || echo -e "${RED}Нет сетей${NC}"
 
             echo -e "${BLUE}============================================${NC}"
             read -p "Нажмите Enter для возврата в меню..." dummy
